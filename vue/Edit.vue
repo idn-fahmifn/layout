@@ -7,26 +7,22 @@ import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 
-// --- Data Dummy Penuh (Hardcoded di Frontend) ---
-// Anggap ini adalah data yang seharusnya diterima dari TaskController@edit
-const task = {
-  id: 2,
-  title: 'Mempelajari Alur Inertia.js',
-  description: 'Fokus pada useForm dan Link untuk navigasi SPA. Target selesai hari Jumat.',
-  dateline: '2025-11-15',
-  priority: 'medium', // Data Priority default
-  is_completed: false, // Data Status default
-};
-// ----------------------------------------------------
+// Menerima props 'task' dari TaskController@edit
+const props = defineProps({
+  task: {
+    type: Object,
+    required: true,
+  },
+});
 
-// Form untuk update tugas (UPDATE)
+// Form Inertia untuk update tugas (UPDATE)
 const form = useForm({
-  // Isi form dengan data dummy yang diterima
-  title: task.title,
-  description: task.description,
-  priority: task.priority,
-  dateline: task.dateline,
-  is_completed: task.is_completed,
+  // Mengisi form dengan data yang diterima dari props task
+  task_name: props.task.task_name,
+  priority: props.task.priority,
+  dateline: props.task.dateline, // Format YYYY-MM-DD dari Controller
+  description: props.task.description,
+  is_completed: props.task.is_completed, // Status Completion
 });
 
 const priorityOptions = [
@@ -37,25 +33,28 @@ const priorityOptions = [
 
 const submitUpdate = () => {
   // Logic PUT/PATCH ke route tasks.update/ID
-  alert(`Fungsi Update: Data akan dikirim ke tasks.update/${task.id}`);
-  // Ganti ini dengan Inertia Form asli:
-  // form.put(route('tasks.update', task.id));
+  form.put(route('task.update', props.task.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      // Opsional: tampilkan notifikasi sukses
+    }
+  });
 };
 </script>
 
 <template>
   <AuthenticatedLayout title="Task">
 
-    <Head :title="`Edit Task: ${task.title}`" />
+    <Head :task_name="`Edit Task: ${task.task_name}`" />
 
     <div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
 
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-semibold text-gray-800">Edit task: {{ task.title }}</h1>
+        <h1 class="text-2xl font-bold text-gray-800">Edit Task: {{ task.task_name }}</h1>
 
         <Link :href="route('task.index')"
-          class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-        ← close
+          class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 uppercase tracking-wider hover:text-gray-900 transition ease-in-out duration-150">
+        ← CLOSE
         </Link>
       </div>
 
@@ -64,27 +63,32 @@ const submitUpdate = () => {
         <form @submit.prevent="submitUpdate" class="space-y-6">
 
           <div>
-            <InputLabel for="title" value="Task Name" />
-            <TextInput id="title" type="text" class="mt-1 block w-full" v-model="form.title" required autofocus />
-            <InputError class="mt-2" :message="form.errors.title" />
+            <InputLabel for="task_name" value="Task Name" />
+            <TextInput id="task_name" type="text" class="mt-1 block w-full" v-model="form.task_name" required autofocus />
+            <InputError class="mt-2" :message="form.errors.task_name" />
           </div>
 
-          <div>
-            <InputLabel for="priority" value="Priority" />
-            <select id="priority" v-model="form.priority" required
-              class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm">
-              <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-            <InputError class="mt-2" :message="form.errors.priority" />
+          <div class="grid grid-cols-2 gap-6">
+            <div class="col-span-1">
+              <InputLabel for="priority" value="Priority" />
+              <select id="priority" v-model="form.priority" required
+                class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm">
+                <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <InputError class="mt-2" :message="form.errors.priority" />
+            </div>
+
+            <div class="col-span-1">
+              <InputLabel for="dateline" value="Dateline" />
+              <input id="dateline" type="date"
+                class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm"
+                v-model="form.dateline" />
+              <InputError class="mt-2" :message="form.errors.dateline" />
+            </div>
           </div>
 
-          <div>
-            <InputLabel for="dateline" value="Dateline" />
-            <TextInput id="dateline" type="date" class="mt-1 block w-full" v-model="form.dateline" required autofocus />
-            <InputError class="mt-2" :message="form.errors.title" />
-          </div>
 
           <div>
             <InputLabel for="description" value="Description" />
@@ -104,8 +108,9 @@ const submitUpdate = () => {
           </div>
 
           <div class="flex justify-end pt-4">
-            <PrimaryButton :class="{ 'opacity-50': form.processing }" :disabled="form.processing || !form.title">
-              Save Changes
+            <PrimaryButton type="submit" class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400"
+              :class="{ 'opacity-50': form.processing }" :disabled="form.processing">
+              SAVE CHANGES
             </PrimaryButton>
           </div>
         </form>

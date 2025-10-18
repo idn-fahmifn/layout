@@ -1,107 +1,136 @@
 <script setup>
 // Mengimpor komponen bawaan
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, Link } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3'; // Import useForm untuk aksi DELETE
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import InputError from '@/Components/InputError.vue';
 
-// --- Data Dummy Penuh (Hardcoded di Frontend) ---
-// Anggap ini adalah data yang seharusnya diterima dari TaskController@edit
-const task = {
-  id: 2,
-  title: 'Mempelajari Alur Inertia.js',
-  description: 'Fokus pada useForm dan Link untuk navigasi SPA. Target selesai hari Jumat.',
-  priority: 'medium', // Data Priority default
-  is_completed: false, // Data Status default
-};
-// ----------------------------------------------------
-
-// Form untuk update tugas (UPDATE)
-const form = useForm({
-  // Isi form dengan data dummy yang diterima
-  title: task.title,
-  description: task.description,
-  priority: task.priority,
-  is_completed: task.is_completed,
+// Menerima props 'task' dari TaskController@show
+const props = defineProps({
+    task: {
+        type: Object,
+        required: true,
+    },
 });
 
-const priorityOptions = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-];
+// Form untuk aksi DELETE
+const formDelete = useForm({});
 
-const submitUpdate = () => {
-  // Logic PUT/PATCH ke route tasks.update/ID
-  alert(`Fungsi Update: Data akan dikirim ke tasks.update/${task.id}`);
-  // Ganti ini dengan Inertia Form asli:
-  // form.put(route('tasks.update', task.id));
+const deleteTask = () => {
+    if (confirm('Apakah Anda yakin ingin menghapus tugas ini secara permanen?')) {
+        formDelete.delete(route('task.destroy', props.task.id));
+    }
 };
+
+// --- Fungsi Helper untuk Tampilan UI ---
+
+// Mendapatkan style badge berdasarkan status completion
+const getStatusBadgeClasses = (isCompleted) => {
+    return isCompleted
+        ? 'bg-green-100 text-green-800' // Selesai
+        : 'bg-yellow-100 text-yellow-800'; // Tertunda
+};
+
+// Mendapatkan style badge berdasarkan priority
+const getPriorityBadgeClasses = (priority) => {
+    const map = {
+        'low': 'bg-blue-100 text-blue-800',
+        'medium': 'bg-yellow-100 text-yellow-800',
+        'high': 'bg-red-100 text-red-800',
+    };
+    return map[priority] || 'bg-gray-100 text-gray-800';
+};
+
+// Mengubah format tanggal
+const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    // Gunakan prop.task.due_date, yang di-cast Laravel sebagai Date object, atau created_at/updated_at
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-EN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+};
+
 </script>
 
 <template>
-  <AuthenticatedLayout title="Task">
+    <AuthenticatedLayout title="Task Detail"> 
 
-    <Head :title="`Edit Task: ${task.title}`" />
+        <Head :title="`Detail: ${task.task_name}`" />
 
-    <div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
 
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-semibold text-gray-800">Edit task: {{ task.title }}</h1>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-900">Detail Tugas</h1>
 
-        <Link :href="route('task.index')"
-          class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-        ← close
-        </Link>
-      </div>
+                <div class="flex space-x-3">
+                    <Link :href="route('task.edit', task.id)"
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    Edit
+                    </Link>
 
-      <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                    <button @click="deleteTask" :disabled="formDelete.processing"
+                        class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
+                        Hapus
+                    </button>
 
-        <form @submit.prevent="submitUpdate" class="space-y-6">
+                    <Link :href="route('task.index')"
+                        class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
+                    ← Kembali
+                    </Link>
+                </div>
+            </div>
 
-          <div>
-            <InputLabel for="title" value="Task Name" />
-            <TextInput id="title" type="text" class="mt-1 block w-full" v-model="form.title" required autofocus />
-            <InputError class="mt-2" :message="form.errors.title" />
-          </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 space-y-8">
 
-          <div>
-            <InputLabel for="priority" value="Priority" />
-            <select id="priority" v-model="form.priority" required
-              class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm">
-              <option v-for="option in priorityOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-            <InputError class="mt-2" :message="form.errors.priority" />
-          </div>
+                <div>
+                    <h2 class="text-4xl font-extrabold text-gray-900 leading-tight"
+                        :class="{ 'line-through text-gray-500': task.is_completed }">
+                        {{ task.task_name }}
+                    </h2>
+                    <p class="mt-2 text-sm text-gray-500">Created at {{ formatDate(task.created_at) }}</p>
+                </div>
 
-          <div>
-            <InputLabel for="description" value="Description" />
-            <textarea id="description"
-              class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm"
-              v-model="form.description" rows="4"></textarea>
-            <InputError class="mt-2" :message="form.errors.description" />
-          </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 border-t pt-6">
 
-          <div class="flex items-center pt-4">
-            <input type="checkbox" id="is_completed" v-model="form.is_completed"
-              class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
-            <label for="is_completed" class="ml-2 text-base text-gray-700 font-medium">
-              Completed?
-            </label>
-            <InputError class="mt-2" :message="form.errors.is_completed" />
-          </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Status</p>
+                        <span
+                            :class="['mt-1 px-3 py-1 inline-flex text-sm font-semibold rounded-full', getStatusBadgeClasses(task.is_completed)]">
+                            {{ task.is_completed ? '✅ Selesai' : '⏳ Tertunda' }}
+                        </span>
+                    </div>
 
-          <div class="flex justify-end pt-4">
-            <PrimaryButton :class="{ 'opacity-50': form.processing }" :disabled="form.processing || !form.title">
-              Save Changes
-            </PrimaryButton>
-          </div>
-        </form>
-      </div>
-    </div>
-  </AuthenticatedLayout>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Prioritas</p>
+                        <span
+                            :class="['mt-1 px-3 py-1 inline-flex text-sm font-semibold rounded-full', getPriorityBadgeClasses(task.priority)]">
+                            {{ task.priority.charAt(0).toUpperCase() + task.priority.slice(1) }}
+                        </span>
+                    </div>
+
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Dateline</p>
+                        <p class="text-base text-gray-800 mt-1">
+                            {{ task.dateline ? formatDate(task.dateline) : 'Tidak Ditetapkan' }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="border-t pt-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3">Deskripsi</h3>
+                    <div class="prose max-w-none text-gray-700 p-4 bg-gray-50 rounded-lg">
+                        <p v-if="task.description">
+                            {{ task.description }}
+                        </p>
+                        <p v-else class="text-gray-400 italic">
+                            Tidak ada deskripsi yang disediakan.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </AuthenticatedLayout>
 </template>
